@@ -1,0 +1,25 @@
+{
+  "name": "llm-report",
+  "version": "1.0.6",
+  "description": "Client side SDK for llm.report",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "author": "Naveennaidu",
+  "license": "MIT",
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@opentelemetry/api": "^1.4.1",
+    "@opentelemetry/core": "^1.15.2",
+    "@opentelemetry/instrumentation-fetch": "^0.41.2",
+    "@opentelemetry/instrumentation-http": "^0.41.2",
+    "@opentelemetry/sdk-node": "^0.41.2",
+    "@opentelemetry/sdk-trace-base": "^1.15.2",
+    "axios": "^1.4.0",
+    "gpt3-tokenizer": "^1.1.5"
+  },
+  "devDependencies": {
+    "typescript": "^5.1.6"
+  }
+}
