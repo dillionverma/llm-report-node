@@ -5,17 +5,17 @@
 To begin, make sure you have npm installed on your machine. Then, Run the following command in your project terminal:
 
 ```bash
-npm install llm-report-node
+pnpm install llm-report
 ```
 
-This will install the llm-report-node package and its dependencies into your project.
+This will install the `llm-report` package and its dependencies into your project.
 
 ## Initializing the Package
 
 Once the installation is complete, you can start integrating the llm-report package into your application. If you are using Express.js as your server framework, you will need to import the llmReportSdk module and initialize it with your API key. Here is an example:
 
 ```javascript
-import { llmReportSdk } from "llm-report-node";
+import { llmReportSdk } from "llm-report";
 
 const sdk = llmReportSdk("api key here");
 sdk.start();
