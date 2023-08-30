@@ -7,6 +7,10 @@ import {
   sha256,
   hrTimeToMilliseconds,
 } from "./utils";
+import zlib from "zlib";
+import { promisify } from "util";
+// Convert zlib.gunzip into a Promise-based function
+const gunzip = promisify(zlib.gunzip);
 
 export class LlmReportExporter implements SpanExporter {
   private serverAddress: string;
@@ -24,8 +28,9 @@ export class LlmReportExporter implements SpanExporter {
     spans.forEach(async (span) => {
       if (checkOpenAIUrl(span.attributes["http.url"]?.toString())) {
         try {
+          const convertedOutput = await convertToOutputFormat(span.attributes);
           const data = {
-            ...convertToOutputFormat(span.attributes),
+            ...convertedOutput,
             duration_in_ms: hrTimeToMilliseconds(span.duration),
           };
 
@@ -53,10 +58,21 @@ function checkOpenAIUrl(url?: string): boolean {
   return url.includes("api.openai.com");
 }
 
-function convertToOutputFormat(attributes: any) {
-  let rb = attributes["http.response.body"];
+async function convertToOutputFormat(attributes: any) {
+  let compressedResponseBody = attributes["http.response.body.compressed"];
+  let responseBody = attributes["http.response.body"];
+  let decompressedResponse = responseBody;
   let data: any;
   let completion = "";
+  let rb = compressedResponseBody ?? responseBody;
+  try {
+    const buffer = Buffer.from(rb, "base64");
+    const decompressed = await gunzip(buffer);
+    rb = decompressed.toString();
+    decompressedResponse = rb;
+  } catch (error) {
+    // If decompression fails, assume the data was not compressed
+  }
   try {
     data = JSON.parse(rb);
     try {
@@ -84,11 +100,18 @@ function convertToOutputFormat(attributes: any) {
 
   const requestHeaders = attributes["http.request.headers"];
   const parsedRequestHeaders = JSON.parse(requestHeaders);
-  const authorization = parsedRequestHeaders["Authorization"];
+
+  const authorization = Array.isArray(parsedRequestHeaders["Authorization"])
+    ? parsedRequestHeaders["Authorization"][0]
+    : parsedRequestHeaders["Authorization"];
+
   if (authorization) {
     delete parsedRequestHeaders["Authorization"];
   }
-  const userId = parsedRequestHeaders["X-User-Id"] ?? undefined;
+
+  const userId = Array.isArray(parsedRequestHeaders["X-User-Id"])
+    ? parsedRequestHeaders["X-User-Id"][0]
+    : parsedRequestHeaders["X-User-Id"];
 
   const requestBody = attributes["http.request.body"];
   const parsedRequestBody = JSON.parse(requestBody);
@@ -127,6 +150,6 @@ function convertToOutputFormat(attributes: any) {
     request_headers: JSON.stringify(parsedRequestHeaders),
     request_body: requestBody,
     response_headers: attributes["http.response.headers"],
-    response_body: attributes["http.response.body"],
+    response_body: decompressedResponse,
   };
 }

@@ -44,12 +44,20 @@ const configuration: HttpInstrumentationConfig = {
       JSON.stringify(response.headers)
     );
 
-    let body = "";
+    let body: any = [];
     response.on("data", (chunk: Buffer) => {
-      body += chunk.toString();
+      body.push(chunk);
     });
     response.on("end", () => {
-      span.setAttribute("http.response.body", body);
+      body = Buffer.concat(body);
+      if (response.headers["content-encoding"] === "gzip") {
+        span.setAttribute(
+          "http.response.body.compressed",
+          body.toString("base64")
+        );
+      } else {
+        span.setAttribute("http.response.body", body.toString());
+      }
       response.removeAllListeners();
     });
   },
